@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+
+<title>HealthHub AI</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body{
+font-family: Arial;
+background:#f4f6f9;
+text-align:center;
+margin:0;
+}
+
+.container{
+width:900px;
+margin:auto;
+margin-top:40px;
+background:white;
+padding:30px;
+border-radius:12px;
+box-shadow:0px 0px 12px rgba(0,0,0,0.1);
+}
+
+h1{
+color:#2c3e50;
+}
+
+button{
+padding:10px 25px;
+background:#007bff;
+color:white;
+border:none;
+border-radius:6px;
+font-size:16px;
+cursor:pointer;
+}
+
+button:hover{
+background:#0056b3;
+}
+
+.upload-box{
+border:2px dashed #007bff;
+padding:30px;
+border-radius:10px;
+background:#fafafa;
+cursor:pointer;
+margin-bottom:15px;
+}
+
+.upload-box:hover{
+background:#eef5ff;
+}
+
+.spinner{
+display:none;
+margin-top:10px;
+font-weight:bold;
+color:#007bff;
+}
+
+.images{
+display:flex;
+justify-content:center;
+gap:40px;
+margin-top:20px;
+flex-wrap:wrap;
+}
+
+.images img{
+border-radius:10px;
+box-shadow:0px 0px 6px rgba(0,0,0,0.2);
+}
+
+.info{
+margin-top:20px;
+padding:15px;
+background:#f8f9fa;
+border-radius:8px;
+text-align:left;
+}
+
+.chart{
+margin-top:30px;
+}
+
+.analytics{
+margin-top:40px;
+}
+
+.analytics img{
+width:300px;
+margin:10px;
+}
+
+.chatbox{
+margin-top:40px;
+border-top:1px solid #ddd;
+padding-top:20px;
+}
+
+.chat-window{
+height:200px;
+overflow-y:auto;
+border:1px solid #ddd;
+padding:10px;
+border-radius:6px;
+background:#fafafa;
+text-align:left;
+}
+
+.chat-input{
+margin-top:10px;
+display:flex;
+gap:10px;
+}
+
+.chat-input input{
+flex:1;
+padding:8px;
+}
+
+.risk-high{color:red;font-weight:bold;}
+.risk-medium{color:orange;font-weight:bold;}
+.risk-low{color:green;font-weight:bold;}
+
+.disclaimer{
+margin-top:20px;
+font-size:12px;
+color:#777;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<h1>HealthHub AI</h1>
+<h3>Skin Disease Detection System</h3>
+
+<form id="uploadForm" method="POST" enctype="multipart/form-data">
+
+<div class="upload-box" id="dropZone">
+<p>Drag & Drop Image Here<br>or Click to Upload</p>
+<input type="file" name="image" id="fileInput" required hidden>
+</div>
+
+<button type="submit">Analyze</button>
+
+</form>
+
+<div class="spinner" id="spinner">
+🤖 AI analyzing image...
+</div>
+
+{% if prediction %}
+
+<h2>Prediction: {{ prediction }}</h2>
+
+<h3>Confidence: {{ (confidence*100)|round(2) }}%</h3>
+
+<h3>
+Risk Level:
+<span class="
+{% if risk == 'HIGH' %}
+risk-high
+{% elif risk == 'MEDIUM' %}
+risk-medium
+{% else %}
+risk-low
+{% endif %}
+">
+{{ risk }}
+</span>
+</h3>
+
+<div class="info">
+
+<h3>About the Disease</h3>
+<p>{{ description }}</p>
+
+<h3>Recommendation</h3>
+<p>{{ advice }}</p>
+
+</div>
+
+<div class="images">
+
+<div>
+<h4>Original Image</h4>
+<img src="{{ url_for('static', filename=image_path) }}" width="250">
+</div>
+
+<div>
+<h4>GradCAM Explanation</h4>
+<img src="{{ url_for('static', filename=gradcam_path) }}" width="250">
+</div>
+
+</div>
+
+<div class="chart">
+
+<h3>Disease Probability Distribution</h3>
+
+<canvas id="probChart"></canvas>
+
+</div>
+
+<script>
+
+var labels = JSON.parse('{{ chart_labels | tojson | safe }}');
+var values = JSON.parse('{{ chart_values | tojson | safe }}');
+
+var ctx = document.getElementById('probChart').getContext('2d');
+
+new Chart(ctx,{
+type:'bar',
+data:{
+labels:labels,
+datasets:[{
+label:'Probability %',
+data:values,
+backgroundColor:'rgba(54,162,235,0.6)'
+}]
+},
+options:{
+scales:{y:{beginAtZero:true}}
+}
+});
+
+</script>
+
+{% endif %}
+
+<div class="analytics">
+
+<h3>Model Analytics Dashboard</h3>
+
+<img src="{{ url_for('static', filename='analytics/disease_distribution.png') }}">
+<img src="{{ url_for('static', filename='analytics/risk_distribution.png') }}">
+<img src="{{ url_for('static', filename='analytics/confidence_distribution.png') }}">
+
+</div>
+
+<div class="chatbox">
+
+<h3>AI Medical Assistant</h3>
+
+<div class="chat-window" id="chatWindow">
+<p><b>AI:</b> Hello! I can answer basic questions about skin diseases.</p>
+</div>
+
+<div class="chat-input">
+
+<input type="text" id="chatInput" placeholder="Ask a health question...">
+
+<button onclick="sendMessage()">Send</button>
+
+</div>
+
+</div>
+
+<div class="disclaimer">
+⚠️ This AI system provides informational insights only and is not a substitute for professional medical advice.
+</div>
+
+</div>
+
+<script>
+
+const dropZone=document.getElementById("dropZone");
+const fileInput=document.getElementById("fileInput");
+
+dropZone.onclick=()=>fileInput.click();
+
+dropZone.addEventListener("dragover",e=>{
+e.preventDefault();
+dropZone.style.background="#eef5ff";
+});
+
+dropZone.addEventListener("dragleave",()=>{
+dropZone.style.background="#fafafa";
+});
+
+dropZone.addEventListener("drop",e=>{
+e.preventDefault();
+fileInput.files=e.dataTransfer.files;
+dropZone.style.background="#fafafa";
+});
+
+document.getElementById("uploadForm").addEventListener("submit",function(){
+document.getElementById("spinner").style.display="block";
+});
+
+function sendMessage(){
+
+let input=document.getElementById("chatInput");
+let msg=input.value.toLowerCase();
+
+if(!msg) return;
+
+let chat=document.getElementById("chatWindow");
+
+chat.innerHTML+="<p><b>You:</b> "+msg+"</p>";
+
+let reply="Please consult a qualified doctor for medical advice.";
+
+if(msg.includes("melanoma"))
+reply="Melanoma is a serious skin cancer. Early detection improves survival.";
+
+else if(msg.includes("nevus") || msg.includes("mole"))
+reply="Melanocytic nevus is usually a benign mole but monitor changes.";
+
+else if(msg.includes("contagious"))
+reply="Most skin cancers and moles are not contagious.";
+
+chat.innerHTML+="<p><b>AI:</b> "+reply+"</p>";
+
+input.value="";
+chat.scrollTop=chat.scrollHeight;
+
+}
+
+</script>
+
+</body>
+</html>
