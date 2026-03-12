@@ -21,7 +21,29 @@ HealthHub AI is an explainable AI system for detecting skin diseases using deep 
 - Chart.js
 
 ## Dataset
-HAM10000 skin lesion dataset.
+
+This project uses the **HAM10000 (Human Against Machine with 10000 training images)** dataset for skin lesion classification.
+
+Dataset Source:
+https://www.kaggle.com/datasets/kmader/skin-cancer-mnist-ham10000
+
+The dataset contains dermatoscopic images categorized into 7 skin disease classes:
+
+- akiec — Actinic keratoses
+- bcc — Basal cell carcinoma
+- bkl — Benign keratosis-like lesions
+- df — Dermatofibroma
+- mel — Melanoma
+- nv — Melanocytic nevi
+- vasc — Vascular lesions
+
+⚠️ Due to GitHub file size limits, the dataset is **not included in this repository**.
+
+To run the project locally:
+
+1. Download the dataset from Kaggle.
+2. Extract it into the project directory:
+
 
 ## Future Work
 - Multi-disease diagnosis
